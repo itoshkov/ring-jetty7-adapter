@@ -1,9 +1,9 @@
-(ns ring.adapter.jetty
-  "Adapter for the Jetty webserver."
-  (:import (org.mortbay.jetty.handler AbstractHandler)
-           (org.mortbay.jetty Server Request Response)
-           (org.mortbay.jetty.bio SocketConnector)
-           (org.mortbay.jetty.security SslSocketConnector)
+(ns ring.adapter.jetty7
+  "Adapter for the Jetty7 webserver."
+  (:import (org.eclipse.jetty.server.handler AbstractHandler)
+           (org.eclipse.jetty.server Server Request Response)
+           (org.eclipse.jetty.server.bio SocketConnector)
+           (org.eclipse.jetty.server.ssl SslSocketConnector)
            (javax.servlet.http HttpServletRequest HttpServletResponse))
   (:require [ring.util.servlet :as servlet]))
 
@@ -11,12 +11,12 @@
   "Returns an Jetty Handler implementation for the given Ring handler."
   [handler]
   (proxy [AbstractHandler] []
-    (handle [target ^Request request response dispatch]
-      (let [request-map  (servlet/build-request-map request)
+    (handle [target ^Request base-request request response]
+      (let [request-map  (servlet/build-request-map base-request)
             response-map (handler request-map)]
         (when response-map
           (servlet/update-servlet-response response response-map)
-          (.setHandled request true))))))
+          (.setHandled base-request true))))))
 
 (defn- add-ssl-connector!
   "Add an SslSocketConnector to a Jetty Server instance."
@@ -63,7 +63,7 @@
     (when-let [configurator (:configurator options)]
       (configurator s))
     (doto s
-      (.addHandler (proxy-handler handler))
+      (.setHandler (proxy-handler handler))
       (.start))
     (when (:join? options true)
       (.join s))
